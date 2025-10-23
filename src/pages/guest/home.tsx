@@ -115,9 +115,9 @@ function LeafletMap({
     </div>
 
     ${p.alamat
-                ? `<div style="margin-top:4px;font-size:12px;opacity:.85">${esc(p.alamat)}</div>`
-                : ""
-            }
+            ? `<div style="margin-top:4px;font-size:12px;opacity:.85">${esc(p.alamat)}</div>`
+            : ""
+        }
 
     <div style="margin-top:6px;font-size:12px;line-height:1.5;">
         Koordinat: ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}<br/>
@@ -125,7 +125,7 @@ function LeafletMap({
         ${p.surat_filename ? `<br/>Surat: ${esc(p.surat_filename)}` : ""}
 
         ${p.surat_path
-                ? `
+            ? `
             <div style="margin-top:8px;">
                 <a
                 href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.surat_path).replace(/^\/+/, '')}"
@@ -137,11 +137,11 @@ function LeafletMap({
                 </a>
             </div>
             `
-                : ""
-            }
+            : ""
+        }
         
         ${p.sk_path
-                ? `
+            ? `
             <div style="margin-top:8px;">
                 <a
                 href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.sk_path).replace(/^\/+/, '')}"
@@ -153,11 +153,11 @@ function LeafletMap({
                 </a>
             </div>
             `
-                : ""
-            }
+            : ""
+        }
 
         ${p.struktur_pengurus_path
-                ? `
+            ? `
             <div style="margin-top:8px;">
                 <a
                 href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.struktur_pengurus_path).replace(/^\/+/, '')}"
@@ -169,11 +169,11 @@ function LeafletMap({
                 </a>
             </div>
             `
-                : ""
-            }
+            : ""
+        }
 
         ${p.lokasi_path
-                ? `
+            ? `
             <div style="margin-top:8px;">
                 <a
                 href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.lokasi_path).replace(/^\/+/, '')}"
@@ -185,11 +185,11 @@ function LeafletMap({
                 </a>
             </div>
             `
-                : ""
-            }
+            : ""
+        }
 
         ${(Number.isFinite(p.lat) && Number.isFinite(p.lng))
-                ? `
+            ? `
             <div style="margin-top:8px;">
                 <a
                 href="https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lng}"
@@ -201,8 +201,8 @@ function LeafletMap({
                 </a>
             </div>
             `
-                : ""
-            }
+            : ""
+        }
     </div>
     </div>
 
@@ -437,6 +437,17 @@ export default function Home() {
                         >
                             Login as Admin
                         </Link>
+
+                        <div className="flex justify-center mb-6">
+                            <Image
+                                src="/assets/images/struktur.jpeg"
+                                alt="Logo MANORI MATENG"
+                                width={650}
+                                height={650}
+                                priority
+                                className="shadow-xl rounded-lg"
+                            />
+                        </div>
 
                         <form onSubmit={onSearch} className="flex gap-2">
                             <input
