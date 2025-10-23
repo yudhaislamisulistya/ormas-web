@@ -8,7 +8,7 @@ export default function Home() {
         <div className="flex justify-center mb-6">
           <Image
             src="/assets/images/logo.jpeg"
-            alt="Logo SI Ormas"
+            alt="Logo MANORI MATENG"
             width={120}
             height={120}
             priority
@@ -17,11 +17,21 @@ export default function Home() {
         </div>
 
         <h1 className="text-2xl sm:text-3xl font-bold tracking-wide mb-2">
-          Selamat datang di SI ORMAS
+          Selamat datang di MANORI MATENG
         </h1>
         <p className="text-base sm:text-lg opacity-90 mb-8">
           Badan Kesatuan Bangsa dan Politik
         </p>
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/assets/images/struktur.jpeg"
+            alt="Logo MANORI MATENG"
+            width={650}
+            height={650}
+            priority
+            className="shadow-xl rounded-lg"
+          />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
           <Link
@@ -43,7 +53,7 @@ export default function Home() {
 
         {/* Footer mini-note (optional) */}
         <p className="mt-8 text-xs opacity-80">
-          © {new Date().getFullYear()} SI Ormas — YIS
+          © {new Date().getFullYear()} MANORI MATENG — YIS
         </p>
       </div>
     </main>

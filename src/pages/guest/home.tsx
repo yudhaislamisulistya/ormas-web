@@ -27,6 +27,15 @@ type Ormas = {
     surat_filename?: string | null;
     surat_path?: string | null;
     surat_mime?: string | null;
+    sk_filename?: string | null;
+    sk_path?: string | null;
+    sk_mime?: string | null;
+    struktur_pengurus_filename?: string | null;
+    struktur_pengurus_path?: string | null;
+    struktur_pengurus_mime?: string | null;
+    lokasi_filename?: string | null;
+    lokasi_path?: string | null;
+    lokasi_mime?: string | null;
     created_at?: string;
 };
 
@@ -47,6 +56,16 @@ function LeafletMap({
         created_at?: string;
         surat_filename?: string | null;
         surat_path?: string | null;
+        surat_mime?: string | null;
+        sk_filename?: string | null;
+        sk_path?: string | null;
+        sk_mime?: string | null;
+        struktur_pengurus_filename?: string | null;
+        struktur_pengurus_path?: string | null;
+        struktur_pengurus_mime?: string | null;
+        lokasi_filename?: string | null;
+        lokasi_path?: string | null;
+        lokasi_mime?: string | null;
     }>;
     selectedId: number | null;
 }) {
@@ -80,6 +99,12 @@ function LeafletMap({
         created_at?: string;
         surat_filename?: string | null;
         surat_path?: string | null;
+        sk_filename?: string | null;
+        sk_path?: string | null;
+        struktur_pengurus_filename?: string | null;
+        struktur_pengurus_path?: string | null;
+        lokasi_filename?: string | null;
+        lokasi_path?: string | null;
     }) => `
     <div style="min-width:240px">
     <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
@@ -108,7 +133,55 @@ function LeafletMap({
                 rel="noopener"
                 style="display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid #0a7;background:#16a34a;color:#fff;font-size:12px;text-decoration:none;"
                 >
-                Buka Surat
+                Surat Keberadaan
+                </a>
+            </div>
+            `
+                : ""
+            }
+        
+        ${p.sk_path
+                ? `
+            <div style="margin-top:8px;">
+                <a
+                href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.sk_path).replace(/^\/+/, '')}"
+                target="_blank"
+                rel="noopener"
+                style="display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid #0a7;background:#2563eb;color:#fff;font-size:12px;text-decoration:none;"
+                >
+                Surat Keterangan (SK)
+                </a>
+            </div>
+            `
+                : ""
+            }
+
+        ${p.struktur_pengurus_path
+                ? `
+            <div style="margin-top:8px;">
+                <a
+                href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.struktur_pengurus_path).replace(/^\/+/, '')}"
+                target="_blank"
+                rel="noopener"
+                style="display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid #0a7;background:#7c3aed;color:#fff;font-size:12px;text-decoration:none;"
+                >
+                Struktur Pengurus
+                </a>
+            </div>
+            `
+                : ""
+            }
+
+        ${p.lokasi_path
+                ? `
+            <div style="margin-top:8px;">
+                <a
+                href="https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/${String(p.lokasi_path).replace(/^\/+/, '')}"
+                target="_blank"
+                rel="noopener"
+                style="display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid #0a7;background:#d97706;color:#fff;font-size:12px;text-decoration:none;"
+                >
+                Lokasi Ormas
                 </a>
             </div>
             `
@@ -312,12 +385,11 @@ export default function Home() {
                 />
             </Head>
             {/* Header */}
-            <header className="sticky top-0 z-[1000] w-full border-b border-black/10 bg-white/95 backdrop-blur">
+            <header className="sticky top-0 z-[1000] w-full border-b border-black/10 bg-red-600/95 backdrop-blur">
                 <div className="w-full px-6 py-4 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <Image src="/globe.svg" alt="Logo" width={20} height={20} />
-                        <h1 className="text-lg sm:text-xl font-semibold tracking-tight">
-                            Selamat Datang, SI ORMAS Mateng [Guest]
+                        <h1 className="text-lg sm:text-xl font-semibold tracking-tight text-white">
+                            Selamat Datang, MANORI MATENG Mateng [Guest]
                         </h1>
                     </div>
                 </div>
@@ -342,6 +414,16 @@ export default function Home() {
                                 created_at: o.created_at,
                                 surat_filename: (o as any).surat_filename ?? null,
                                 surat_path: (o as any).surat_path ?? null,
+                                surat_mime: (o as any).surat_mime ?? null,
+                                sk_filename: (o as any).sk_filename ?? null,
+                                sk_path: (o as any).sk_path ?? null,
+                                sk_mime: (o as any).sk_mime ?? null,
+                                struktur_pengurus_filename: (o as any).struktur_pengurus_filename ?? null,
+                                struktur_pengurus_path: (o as any).struktur_pengurus_path ?? null,
+                                struktur_pengurus_mime: (o as any).struktur_pengurus_mime ?? null,
+                                lokasi_filename: (o as any).lokasi_filename ?? null,
+                                lokasi_path: (o as any).lokasi_path ?? null,
+                                lokasi_mime: (o as any).lokasi_mime ?? null,
                             }))}
                     />
                 </section>
@@ -415,6 +497,39 @@ export default function Home() {
                                         ) : (
                                             <span className="text-sm opacity-60">
                                                 Surat keberadaan tidak tersedia
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-2">
+                                        {o.sk_filename ? (
+                                            <span className="text-sm underline underline-offset-4">
+                                                Surat Keterangan (SK): {o.sk_filename}
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm opacity-60">
+                                                Surat Keterangan (SK) tidak tersedia
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-2">
+                                        {o.struktur_pengurus_filename ? (
+                                            <span className="text-sm underline underline-offset-4">
+                                                Struktur Pengurus: {o.struktur_pengurus_filename}
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm opacity-60">
+                                                Struktur Pengurus tidak tersedia
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-2">
+                                        {o.lokasi_filename ? (
+                                            <span className="text-sm underline underline-offset-4">
+                                                Lokasi Ormas: {o.lokasi_filename}
+                                            </span>
+                                        ) : (
+                                            <span className="text-sm opacity-60">
+                                                Lokasi Ormas tidak tersedia
                                             </span>
                                         )}
                                     </div>

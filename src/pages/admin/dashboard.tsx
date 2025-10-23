@@ -20,7 +20,16 @@ type Ormas = {
     surat_filename?: string | null;
     surat_mime?: string | null;
     surat_path?: string | null;
-    created_at?: string;
+    sk_filename?: string | null;
+    sk_mime?: string | null;
+    sk_path?: string | null;
+    struktur_pengurus_filename?: string | null;
+    struktur_pengurus_mime?: string | null;
+    struktur_pengurus_path?: string | null;
+    lokasi_filename?: string | null;
+    lokasi_mime?: string | null;
+    lokasi_path?: string | null;
+    created_at?: string | null;
 };
 
 const SUPABASE_URL = "https://rpblbedyqmnzpowbumzd.supabase.co/rest/v1/ormas";
@@ -63,6 +72,16 @@ export default function Dashboard() {
         surat: undefined,
         surat_filename: null,
         surat_mime: null,
+        surat_path: null,
+        sk_filename: null,
+        sk_mime: null,
+        sk_path: null,
+        struktur_pengurus_filename: null,
+        struktur_pengurus_mime: null,
+        struktur_pengurus_path: null,
+        lokasi_filename: null,
+        lokasi_mime: null,
+        lokasi_path: null,
     });
 
     // fetch list
@@ -145,14 +164,14 @@ export default function Dashboard() {
         e.preventDefault();
         setSaving(true);
         try {
+            if (!supabase) throw new Error("Supabase client belum terinisialisasi");
+            if (!BUCKET) throw new Error("Konstanta BUCKET belum di-set");
+
             const isEdit = form.id != null && form.id !== "";
-            // id di DB = BIGINT. Untuk edit, pastikan number (bukan UUID/string acak).
-            const idNum = isEdit
-                ? (typeof form.id === "string" ? Number(form.id) : form.id)
-                : undefined;
+            const idNum = isEdit ? (typeof form.id === "string" ? Number(form.id) : form.id) : undefined;
+            const folderKey = isEdit ? String(idNum) : (crypto as any).randomUUID?.() || `${Date.now()}`;
 
             const payload: any = {
-                // HANYA sertakan id saat edit
                 ...(isEdit ? { id: idNum } : {}),
                 nama: form.nama,
                 alamat: form.alamat,
@@ -161,35 +180,80 @@ export default function Dashboard() {
                 lng: form.lng,
                 surat_filename: form.surat_filename || undefined,
                 surat_mime: form.surat_mime || undefined,
-                // surat_path akan diisi setelah upload
+                surat_path: form.surat_path || undefined,
+                sk_filename: form.sk_filename || undefined,
+                sk_mime: form.sk_mime || undefined,
+                sk_path: form.sk_path || undefined,
+                struktur_pengurus_filename: form.struktur_pengurus_filename || undefined,
+                struktur_pengurus_mime: form.struktur_pengurus_mime || undefined,
+                struktur_pengurus_path: form.struktur_pengurus_path || undefined,
+                lokasi_filename: form.lokasi_filename || undefined,
+                lokasi_mime: form.lokasi_mime || undefined,
+                lokasi_path: form.lokasi_path || undefined,
             };
 
-            if (formFile) {
-                const safeName = formFile.name.replace(/[^\w.-]+/g, "_");
-                // Folder untuk storage TIDAK harus sama dgn id DB — pakai UUID agar aman saat insert baru
-                const folderKey = isEdit ? String(idNum) : crypto.randomUUID();
-                const objectKey = `public/ormas_surat/${folderKey}/${Date.now()}-${safeName}`;
+            const mimeToExt = (m?: string) => {
+                const t = (m || "").toLowerCase();
+                if (t.includes("pdf")) return "pdf";
+                if (t.includes("jpeg")) return "jpeg";
+                if (t.includes("jpg")) return "jpg";
+                if (t.includes("png")) return "png";
+                if (t.includes("gif")) return "gif";
+                if (t.includes("webp")) return "webp";
+                if (t.includes("msword")) return "doc";
+                if (t.includes("officedocument.wordprocessingml")) return "docx";
+                return "";
+            };
 
+            const ensureExt = (name: string, mime: string) => {
+                const hasExt = /\.[A-Za-z0-9]+$/.test(name);
+                if (hasExt) return name;
+                const ext = mimeToExt(mime);
+                return ext ? `${name}.${ext}` : name;
+            };
+
+            const uploads: Array<Promise<void>> = [];
+
+            const tryUpload = async (kind: "surat" | "sk" | "struktur_pengurus" | "lokasi", file?: File | null) => {
+                if (!file) return;
+                const fixedName = ensureExt(file.name, file.type || "");
+                const safeName = fixedName.replace(/[^\w.-]+/g, "_");
+                const objectKey = `public/ormas_${kind}/${folderKey}/${Date.now()}-${safeName}`;
                 const { data: up, error: upErr } = await supabase.storage
                     .from(BUCKET)
-                    .upload(objectKey, formFile, {
+                    .upload(objectKey, file, {
                         upsert: true,
-                        contentType: formFile.type || "application/octet-stream",
+                        contentType: file.type || "application/octet-stream",
                         cacheControl: "3600",
                     });
-
                 if (upErr) throw upErr;
+                const path = up?.path || objectKey;
+                if (kind === "surat") {
+                    payload.surat_filename = fixedName;
+                    payload.surat_mime = file.type || "application/pdf";
+                    payload.surat_path = path;
+                } else if (kind === "sk") {
+                    payload.sk_filename = fixedName;
+                    payload.sk_mime = file.type || "application/pdf";
+                    payload.sk_path = path;
+                } else if (kind === "struktur_pengurus") {
+                    payload.struktur_pengurus_filename = fixedName;
+                    payload.struktur_pengurus_mime = file.type || "application/pdf";
+                    payload.struktur_pengurus_path = path;
+                } else if (kind === "lokasi") {
+                    payload.lokasi_filename = fixedName;
+                    payload.lokasi_mime = file.type || "application/octet-stream";
+                    payload.lokasi_path = path;
+                }
+            };
 
-                payload.surat_filename = formFile.name;
-                payload.surat_mime = formFile.type || "application/pdf";
-                payload.surat_path = up?.path || objectKey; // pastikan kolom ini ada di tabel
-            }
+            uploads.push(tryUpload("surat", (formFile as any)?.surat));
+            uploads.push(tryUpload("sk", (formFile as any)?.sk));
+            uploads.push(tryUpload("struktur_pengurus", (formFile as any)?.struktur_pengurus));
+            uploads.push(tryUpload("lokasi", (formFile as any)?.lokasi));
+            await Promise.all(uploads);
 
-            // Upsert ke tabel ormas (DB akan generate BIGINT id jika insert baru)
-            const { error: dbErr } = await supabase
-                .from("ormas")
-                .upsert(payload, { onConflict: "id" }); // butuh id hanya saat edit
-
+            const { error: dbErr } = await supabase.from("ormas").upsert(payload, { onConflict: "id" });
             if (dbErr) throw dbErr;
 
             await fetchList();
@@ -201,6 +265,9 @@ export default function Dashboard() {
             setSaving(false);
         }
     };
+
+
+
 
     // helper: bangun URL publik Supabase Storage dari surat_path
     const SUPABASE_PUBLIC_BASE =
@@ -219,8 +286,6 @@ export default function Dashboard() {
 
         return `${SUPABASE_PUBLIC_BASE}/${BUCKET}/${p}`;
     }
-
-
 
     return (
         <div className="min-h-screen bg-white text-black p-6">
@@ -330,61 +395,248 @@ export default function Dashboard() {
                                 ) : null}
                             </div>
 
-                            {/* surat_filename */}
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Surat Filename (opsional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={form.surat_filename ?? ""}
-                                    onChange={(e) => onChange("surat_filename", e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-black/20"
-                                    placeholder="surat-1.pdf"
-                                />
-                            </div>
+                            <div className="space-y-6 w-full md:col-span-2">
+                                {/* ===================== 1. Surat Keberadaan ===================== */}
+                                <div className="border border-black/10 rounded-xl p-4 bg-gray-50 w-full col-span-full">
+                                    <h3 className="font-semibold mb-3 text-base">
+                                        📄 Surat Keberadaan
+                                    </h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Surat Filename (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.surat_filename ?? ""}
+                                                onChange={(e) =>
+                                                    onChange("surat_filename", e.target.value)
+                                                }
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="surat-1.pdf"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Surat MIME (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.surat_mime ?? ""}
+                                                onChange={(e) => onChange("surat_mime", e.target.value)}
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="application/pdf"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium mb-1">
+                                                Upload Surat Keberadaan (PDF/IMG)
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="application/pdf,image/*"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0] ?? null;
+                                                    setFormFile((x: any) => ({ ...(x || {}), surat: f }));
+                                                    if (f) {
+                                                        if (!form.surat_filename) setForm((x) => ({ ...x, surat_filename: f.name }));
+                                                        if (!form.surat_mime) setForm((x) => ({ ...x, surat_mime: f.type || "application/octet-stream" }));
+                                                    }
+                                                }}
+                                                className="w-full file:mr-3 file:px-3 file:py-2 file:border file:rounded-lg file:bg-white file:text-black file:border-black/15 border border-black/15 rounded-lg h-10 px-2"
+                                            />
+                                            {form.surat_filename && (
+                                                <p className="mt-1 text-xs text-gray-600">
+                                                    File: {form.surat_filename}{" "}
+                                                    {form.surat_mime ? `(${form.surat_mime})` : ""}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
 
-                            {/* surat_mime */}
-                            <div>
-                                <label className="block text-sm font-medium mb-1">
-                                    Surat MIME (opsional)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={form.surat_mime ?? ""}
-                                    onChange={(e) => onChange("surat_mime", e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-black/20"
-                                    placeholder="application/pdf"
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium mb-1">
-                                    Upload Surat (PDF/IMG)
-                                </label>
-                                <input
-                                    type="file"
-                                    accept="application/pdf,image/*"
-                                    onChange={(e) => {
-                                        const f = e.target.files?.[0] ?? null;
-                                        setFormFile(f);
-                                        if (f) {
-                                            if (!form.surat_filename)
-                                                setForm((x) => ({ ...x, surat_filename: f.name }));
-                                            if (!form.surat_mime)
-                                                setForm((x) => ({
-                                                    ...x,
-                                                    surat_mime: f.type || "application/octet-stream",
-                                                }));
-                                        }
-                                    }}
-                                    className="w-full file:mr-3 file:px-3 file:py-2 file:border file:rounded-lg file:bg-white file:text-black file:border-black/15 border border-black/15 rounded-lg h-10 px-2"
-                                />
-                                {form.surat_filename && (
-                                    <p className="mt-1 text-xs text-gray-600">
-                                        File: {form.surat_filename}{" "}
-                                        {form.surat_mime ? `(${form.surat_mime})` : ""}
-                                    </p>
-                                )}
+                                {/* ===================== 2. SK Kepengurusan ===================== */}
+                                <div className="border border-black/10 rounded-xl p-4 bg-gray-50">
+                                    <h3 className="font-semibold mb-3 text-base">
+                                        📜 SK Kepengurusan
+                                    </h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                SK Filename (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.sk_filename ?? ""}
+                                                onChange={(e) =>
+                                                    onChange("sk_filename", e.target.value)
+                                                }
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="sk.pdf"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                SK MIME (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.sk_mime ?? ""}
+                                                onChange={(e) => onChange("sk_mime", e.target.value)}
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="application/pdf"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium mb-1">
+                                                Upload SK Kepengurusan (PDF/IMG)
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="application/pdf,image/*"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0] ?? null;
+                                                    setFormFile((x: any) => ({ ...(x || {}), sk: f }));
+                                                    if (f) {
+                                                        if (!form.sk_filename) setForm((x) => ({ ...x, sk_filename: f.name }));
+                                                        if (!form.sk_mime) setForm((x) => ({ ...x, sk_mime: f.type || "application/octet-stream" }));
+                                                    }
+                                                }}
+                                                className="w-full file:mr-3 file:px-3 file:py-2 file:border file:rounded-lg file:bg-white file:text-black file:border-black/15 border border-black/15 rounded-lg h-10 px-2"
+                                            />
+                                            {form.sk_filename && (
+                                                <p className="mt-1 text-xs text-gray-600">
+                                                    File: {form.sk_filename}{" "}
+                                                    {form.sk_mime ? `(${form.sk_mime})` : ""}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ===================== 3. Struktur Organisasi ===================== */}
+                                <div className="border border-black/10 rounded-xl p-4 bg-gray-50">
+                                    <h3 className="font-semibold mb-3 text-base">
+                                        👥 Struktur Organisasi
+                                    </h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Struktur Filename (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.struktur_pengurus_filename ?? ""}
+                                                onChange={(e) =>
+                                                    onChange("struktur_pengurus_filename", e.target.value)
+                                                }
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="struktur.pdf"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Struktur MIME (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.struktur_pengurus_mime ?? ""}
+                                                onChange={(e) =>
+                                                    onChange("struktur_pengurus_mime", e.target.value)
+                                                }
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="application/pdf"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium mb-1">
+                                                Upload Struktur Organisasi (PDF/IMG)
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="application/pdf,image/*"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0] ?? null;
+                                                    setFormFile((x: any) => ({ ...(x || {}), struktur_pengurus: f }));
+                                                    if (f) {
+                                                        if (!form.struktur_pengurus_filename) setForm((x) => ({ ...x, struktur_pengurus_filename: f.name }));
+                                                        if (!form.struktur_pengurus_mime) setForm((x) => ({ ...x, struktur_pengurus_mime: f.type || "application/octet-stream" }));
+                                                    }
+                                                }}
+                                                className="w-full file:mr-3 file:px-3 file:py-2 file:border file:rounded-lg file:bg-white file:text-black file:border-black/15 border border-black/15 rounded-lg h-10 px-2"
+                                            />
+                                            {form.struktur_pengurus_filename && (
+                                                <p className="mt-1 text-xs text-gray-600">
+                                                    File: {form.struktur_pengurus_filename}{" "}
+                                                    {form.struktur_pengurus_mime
+                                                        ? `(${form.struktur_pengurus_mime})`
+                                                        : ""}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ===================== 4. Lokasi / Foto Sekretariat ===================== */}
+                                <div className="border border-black/10 rounded-xl p-4 bg-gray-50">
+                                    <h3 className="font-semibold mb-3 text-base">
+                                        📍 Lokasi / Foto Sekretariat
+                                    </h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Lokasi Filename (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.lokasi_filename ?? ""}
+                                                onChange={(e) =>
+                                                    onChange("lokasi_filename", e.target.value)
+                                                }
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="lokasi.jpg"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">
+                                                Lokasi MIME (opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={form.lokasi_mime ?? ""}
+                                                onChange={(e) =>
+                                                    onChange("lokasi_mime", e.target.value)
+                                                }
+                                                className="w-full h-10 px-3 rounded-lg border border-black/15 bg-white focus:outline-none focus:ring-2 focus:ring-black/20"
+                                                placeholder="image/jpeg"
+                                            />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium mb-1">
+                                                Upload Lokasi / Foto Sekretariat (PDF/IMG)
+                                            </label>
+                                            <input
+                                                type="file"
+                                                accept="application/pdf,image/*"
+                                                onChange={(e) => {
+                                                    const f = e.target.files?.[0] ?? null;
+                                                    setFormFile((x: any) => ({ ...(x || {}), lokasi: f }));
+                                                    if (f) {
+                                                        if (!form.lokasi_filename) setForm((x) => ({ ...x, lokasi_filename: f.name }));
+                                                        if (!form.lokasi_mime) setForm((x) => ({ ...x, lokasi_mime: f.type || "application/octet-stream" }));
+                                                    }
+                                                }}
+                                                className="w-full file:mr-3 file:px-3 file:py-2 file:border file:rounded-lg file:bg-white file:text-black file:border-black/15 border border-black/15 rounded-lg h-10 px-2"
+                                            />
+                                            {form.lokasi_filename && (
+                                                <p className="mt-1 text-xs text-gray-600">
+                                                    File: {form.lokasi_filename}{" "}
+                                                    {form.lokasi_mime ? `(${form.lokasi_mime})` : ""}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -466,12 +718,63 @@ export default function Dashboard() {
                                                                 <a
                                                                     href={buildPublicUrl(o.surat_path) ?? "#"}
                                                                     className="text-xs underline underline-offset-4 hover:no-underline"
-                                                                    aria-label={`Lihat surat ${o.surat_filename ?? ""}`}
+                                                                    aria-label={`Lihat surat ${o.surat_filename ?? ""
+                                                                        }`}
                                                                 >
-                                                                    Lihat Surat
+                                                                    Lihat Surat Keberadaan
                                                                 </a>
                                                             ) : (
-                                                                <span className="text-xs text-gray-500">Tidak ada surat</span>
+                                                                <span className="text-xs text-gray-500">
+                                                                    Tidak ada surat
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-2 flex gap-2">
+                                                            {o.sk_path ? (
+                                                                <a
+                                                                    href={buildPublicUrl(o.sk_path) ?? "#"}
+                                                                    className="text-xs underline underline-offset-4 hover:no-underline"
+                                                                    aria-label={`Lihat surat keterangan ${o.sk_filename ?? ""
+                                                                        }`}
+                                                                >
+                                                                    Lihat Surat Keterangan
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-500">
+                                                                    Tidak ada surat
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-2 flex gap-2">
+                                                            {o.struktur_pengurus_path ? (
+                                                                <a 
+                                                                    href={buildPublicUrl(o.struktur_pengurus_path) ?? "#"}
+                                                                    className="text-xs underline underline-offset-4 hover:no-underline"
+                                                                    aria-label={`Lihat struktur pengurus ${o.struktur_pengurus_filename ?? ""
+                                                                        }`}
+                                                                >
+                                                                    Lihat Struktur Pengurus
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-500">
+                                                                    Tidak ada surat
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="mt-2 flex gap-2">
+                                                            {o.lokasi_path ? (
+                                                                <a
+                                                                    href={buildPublicUrl(o.lokasi_path) ?? "#"}
+                                                                    className="text-xs underline underline-offset-4 hover:no-underline"
+                                                                    aria-label={`Lihat lokasi ${o.lokasi_filename ?? ""
+                                                                        }`}
+                                                                >
+                                                                    Lihat Lokasi
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-500">
+                                                                    Tidak ada surat
+                                                                </span>
                                                             )}
                                                         </div>
                                                     </div>
