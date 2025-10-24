@@ -181,7 +181,7 @@ function LeafletMap({
                 rel="noopener"
                 style="display:inline-block;padding:6px 10px;border-radius:8px;border:1px solid #0a7;background:#d97706;color:#fff;font-size:12px;text-decoration:none;"
                 >
-                Lokasi Ormas
+                Foto Sekretariat
                 </a>
             </div>
             `
@@ -536,11 +536,11 @@ export default function Home() {
                                     <div className="mt-3 flex items-center gap-2">
                                         {o.lokasi_filename ? (
                                             <span className="text-sm underline underline-offset-4">
-                                                Lokasi Ormas: {o.lokasi_filename}
+                                                Foto Sekretariat: {o.lokasi_filename}
                                             </span>
                                         ) : (
                                             <span className="text-sm opacity-60">
-                                                Lokasi Ormas tidak tersedia
+                                                Foto Sekretariat tidak tersedia
                                             </span>
                                         )}
                                     </div>

@@ -22,17 +22,6 @@ export default function Home() {
         <p className="text-base sm:text-lg opacity-90 mb-8">
           Badan Kesatuan Bangsa dan Politik
         </p>
-        <div className="flex justify-center mb-6">
-          <Image
-            src="/assets/images/struktur.jpeg"
-            alt="Logo MANORI MATENG"
-            width={650}
-            height={650}
-            priority
-            className="shadow-xl rounded-lg"
-          />
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
           <Link
             href="/admin/login"
