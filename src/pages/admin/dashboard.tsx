@@ -123,6 +123,30 @@ export default function Dashboard() {
         setForm((f) => ({ ...f, [key]: val as any }));
     };
 
+    const onDelete = async (id: number) => {
+        if (!confirm("Hapus data ini?")) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${SUPABASE_URL}?id=eq.${id}`, {
+                method: "DELETE",
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                },
+            });
+            if (!res.ok) {
+                alert("Gagal menghapus data.");
+                return;
+            }
+            await fetchList();
+            alert("Data terhapus.");
+        } catch (err) {
+            alert("Gagal menghapus data.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const onReset = () => {
         setForm({
             id: undefined,
@@ -778,6 +802,21 @@ export default function Dashboard() {
                                                             )}
                                                         </div>
                                                     </div>
+                                                    {/* Delete Button */}
+                                                    <div className="ml-3">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onDelete(o.id);
+                                                            }}
+                                                            className="text-red-600 hover:text-red-800 text-sm font-semibold"
+                                                            aria-label={`Hapus ormas ${o.nama}`}
+                                                        >
+                                                            Hapus
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-2 flex justify-between items-center">
                                                     <span
                                                         className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium border ${o.status === "Aktif"
                                                             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700"
