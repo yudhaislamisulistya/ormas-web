@@ -9,10 +9,11 @@ export default function Home() {
           <Image
             src="/assets/images/logo.jpeg"
             alt="Logo MANORI MATENG"
-            width={120}
-            height={120}
+            width={160}
+            height={160}
             priority
             className="rounded-full shadow-xl"
+            style={{ objectFit: "cover", objectPosition: "top" }}
           />
         </div>
 
