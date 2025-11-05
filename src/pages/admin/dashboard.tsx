@@ -293,23 +293,28 @@ export default function Dashboard() {
 
 
 
-    // helper: bangun URL publik Supabase Storage dari surat_path
     const SUPABASE_PUBLIC_BASE =
-        "https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public/ormas_surat/public";
+        "https://rpblbedyqmnzpowbumzd.supabase.co/storage/v1/object/public";
 
-    function buildPublicUrl(path?: string | null) {
+    function buildPublicUrl(path) {
         if (!path) return null;
 
+        // 1) bersihkan leading slash
         let p = String(path).replace(/^\/+/, "");
 
-        p = p.replace(/^public\/(ormas_surat\/)/, "$1");
+        // 2) kalau ada bucket di depan, buang supaya tidak /ormas_surat/ormas_surat/…
+        p = p.replace(/^ormas_surat\//, "");
 
-        if (p.startsWith(`${BUCKET}/`)) {
-            return `${SUPABASE_PUBLIC_BASE}/${p}`;
+        // 3) pastikan selalu diawali "public/"
+        if (!p.startsWith("public/")) {
+            p = `public/${p}`;
         }
 
+        // 4) hasil akhir
         return `${SUPABASE_PUBLIC_BASE}/${BUCKET}/${p}`;
     }
+
+
 
     return (
         <div className="min-h-screen bg-white text-black p-6">
@@ -771,7 +776,7 @@ export default function Dashboard() {
                                                         </div>
                                                         <div className="mt-2 flex gap-2">
                                                             {o.struktur_pengurus_path ? (
-                                                                <a 
+                                                                <a
                                                                     href={buildPublicUrl(o.struktur_pengurus_path) ?? "#"}
                                                                     className="text-xs underline underline-offset-4 hover:no-underline"
                                                                     aria-label={`Lihat struktur pengurus ${o.struktur_pengurus_filename ?? ""
